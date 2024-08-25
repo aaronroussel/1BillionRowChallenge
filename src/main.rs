@@ -1,85 +1,149 @@
-
-
+use std::collections::HashMap;
 use std::fs::File;
-use std::io::Write;
-use rand::prelude::*;
+use std::io::{BufRead, BufReader};
+use std::sync::mpsc;
+use std::thread;
 use std::time::Instant;
 
+// first run time : 978.85 seconds
+// second run : 99.62 seconds -- CPU: Apple M3 Pro 11C
 
-
-
-fn main() -> std::io::Result<()> {
-    // 200 cities
-    let cities = vec![
-        "Tokyo, Japan", "New York City, USA", "Paris, France", "Sydney, Australia", "Cairo, Egypt",
-        "São Paulo, Brazil", "Toronto, Canada", "Istanbul, Turkey", "Berlin, Germany", "Bangkok, Thailand",
-        "Nairobi, Kenya", "Mumbai, India", "Moscow, Russia", "Buenos Aires, Argentina", "Seoul, South Korea",
-        "Johannesburg, South Africa", "Dubai, United Arab Emirates", "Madrid, Spain", "Singapore, Singapore",
-        "Mexico City, Mexico", "London, United Kingdom", "Los Angeles, USA", "Rome, Italy", "Rio de Janeiro, Brazil",
-        "Beijing, China", "Lagos, Nigeria", "Chicago, USA", "Hong Kong, China", "Tehran, Iran", "Lisbon, Portugal",
-        "Vienna, Austria", "Zurich, Switzerland", "Jakarta, Indonesia", "Melbourne, Australia", "Copenhagen, Denmark",
-        "Stockholm, Sweden", "Brussels, Belgium", "Warsaw, Poland", "Bangui, Central African Republic",
-        "Oslo, Norway", "Helsinki, Finland", "Athens, Greece", "Bucharest, Romania", "Budapest, Hungary",
-        "Prague, Czech Republic", "Bratislava, Slovakia", "Belgrade, Serbia", "Sofia, Bulgaria",
-        "Tbilisi, Georgia", "Baku, Azerbaijan", "Yerevan, Armenia", "Kiev, Ukraine", "Minsk, Belarus",
-        "Milan, Italy", "Barcelona, Spain", "Munich, Germany", "Hamburg, Germany", "Frankfurt, Germany",
-        "Amsterdam, Netherlands", "Rotterdam, Netherlands", "Luxembourg City, Luxembourg", "Reykjavik, Iceland",
-        "Valletta, Malta", "San Marino, San Marino", "Monaco, Monaco", "Andorra la Vella, Andorra",
-        "Vatican City, Vatican City", "Kuala Lumpur, Malaysia", "Manila, Philippines", "Hanoi, Vietnam",
-        "Ho Chi Minh City, Vietnam", "Phnom Penh, Cambodia", "Vientiane, Laos", "Bangui, Central African Republic",
-        "Yaoundé, Cameroon", "Abuja, Nigeria", "Pretoria, South Africa", "Cape Town, South Africa",
-        "Rabat, Morocco", "Algiers, Algeria", "Tunis, Tunisia", "Tripoli, Libya", "Nairobi, Kenya",
-        "Addis Ababa, Ethiopia", "Kigali, Rwanda", "Bujumbura, Burundi", "Lusaka, Zambia",
-        "Harare, Zimbabwe", "Maputo, Mozambique", "Luanda, Angola", "Windhoek, Namibia",
-        "Gaborone, Botswana", "Antananarivo, Madagascar", "Victoria, Seychelles", "Port Louis, Mauritius",
-        "Male, Maldives", "Colombo, Sri Lanka", "Kathmandu, Nepal", "Thimphu, Bhutan",
-        "Dhaka, Bangladesh", "Islamabad, Pakistan", "Kabul, Afghanistan", "Baghdad, Iraq",
-        "Damascus, Syria", "Amman, Jordan", "Jerusalem, Israel", "Beirut, Lebanon",
-        "Doha, Qatar", "Manama, Bahrain", "Muscat, Oman", "Sana'a, Yemen", "Riyadh, Saudi Arabia",
-        "Kuwait City, Kuwait", "Abu Dhabi, United Arab Emirates", "Dubai, United Arab Emirates",
-        "Ankara, Turkey", "Athens, Greece", "Sofia, Bulgaria", "Belgrade, Serbia",
-        "Tirana, Albania", "Skopje, North Macedonia", "Sarajevo, Bosnia and Herzegovina",
-        "Zagreb, Croatia", "Ljubljana, Slovenia", "Podgorica, Montenegro", "Chisinau, Moldova",
-        "Vilnius, Lithuania", "Riga, Latvia", "Tallinn, Estonia", "Moscow, Russia",
-        "St. Petersburg, Russia", "Warsaw, Poland", "Prague, Czech Republic", "Bratislava, Slovakia",
-        "Vienna, Austria", "Budapest, Hungary", "Bucharest, Romania", "Sofia, Bulgaria",
-        "Belgrade, Serbia", "Skopje, North Macedonia", "Sarajevo, Bosnia and Herzegovina",
-        "Zagreb, Croatia", "Ljubljana, Slovenia", "Podgorica, Montenegro", "Pristina, Kosovo",
-        "San Salvador, El Salvador", "Guatemala City, Guatemala", "Managua, Nicaragua",
-        "Tegucigalpa, Honduras", "Panama City, Panama", "San José, Costa Rica", "Havana, Cuba",
-        "Santo Domingo, Dominican Republic", "Port-au-Prince, Haiti", "Kingston, Jamaica",
-        "Nassau, Bahamas", "Bridgetown, Barbados", "Castries, Saint Lucia", "Kingstown, Saint Vincent and the Grenadines",
-        "Saint George's, Grenada", "Port of Spain, Trinidad and Tobago", "Saint John's, Antigua and Barbuda",
-        "Roseau, Dominica", "Basseterre, Saint Kitts and Nevis", "Belmopan, Belize",
-        "Cayenne, French Guiana", "Georgetown, Guyana", "Paramaribo, Suriname", "Asunción, Paraguay",
-        "Montevideo, Uruguay", "La Paz, Bolivia", "Sucre, Bolivia", "Quito, Ecuador",
-        "Lima, Peru", "Caracas, Venezuela", "Bogotá, Colombia", "Brasília, Brazil",
-        "Santiago, Chile", "Buenos Aires, Argentina", "Montevideo, Uruguay", "Asunción, Paraguay",
-        "Suva, Fiji", "Apia, Samoa", "Nukuʻalofa, Tonga", "Port Moresby, Papua New Guinea",
-        "Honiara, Solomon Islands", "Palikir, Micronesia", "Majuro, Marshall Islands",
-        "Tarawa, Kiribati", "Funafuti, Tuvalu", "Port Vila, Vanuatu", "Nouméa, New Caledonia",
-        "Papeete, French Polynesia", "Wellington, New Zealand", "Canberra, Australia"
-
-    ];
-
-    let mut file = File::create("foo.txt")?;
-
-    let mut rng = rand::thread_rng();
-
+fn main() {
     let start = Instant::now();
+    let mut hash_map: DataMap = DataMap {
+        hash_map: HashMap::with_capacity(10000),
+    };
+    let FILENAME = "measurements.txt";
+    println!("{}", FILENAME);
 
-    for _n in 0..1000000000 {
-        let temperature: f64 = rng.gen_range(5.0..42.00);
-        let index: usize = rng.gen_range(1..195);
-        let city = cities[index];
-        let string = format!("{};{}\n", city, temperature);
-        file.write_all(string.as_bytes())?;
+    read_and_parse(FILENAME, &mut hash_map);
+
+    for value in hash_map.get_mut() {
+        let city = value.0.to_string();
+        let temperature_avg: f64 = value.1.get_avg_temp();
+        println!("City: {} ---- Average: {}", city, temperature_avg);
     }
-
-    let elapsed = start.elapsed();
-    eprintln!("Elapsed: {}", elapsed.as_secs_f64());
-    Ok(())
+    let elapsed = start.elapsed().as_secs_f64();
+    println!("Elapsed time: {}", elapsed);
 }
 
+fn parse_lines(lines: String) -> std::io::Result<Vec<(String, f64)>> {
+    let mut vec = Vec::new();
+    for line in lines.lines() {
+        let split_string: Vec<&str> = line.trim().split(';').collect();
+        let city = split_string[0].to_string();
+        let temperature: f64 = split_string[1].parse().unwrap();
+        let tuple = (city, temperature);
+        vec.push(tuple);
+    }
+    Ok(vec)
+}
 
+fn read_and_parse(filename: &str, map: &mut DataMap) {
+    let file = File::open(filename).unwrap();
+    let mut buf_reader = BufReader::new(file);
+    let mut threads = Vec::new();
+    let MAX_THREADS = 2048;
+    let NUMBER_OF_LINES = 50000;
+    let mut running = true;
 
+    // need a better way to do this concurrently, while avoiding the use of a mutex (because its slow)
+    //
+    // also may be worth trying to parse the temperature data as an integer instead of a float value,
+    // parsing a float probably has more overhead compared to an int, but we sacrifice accuracy due to losing anything after the decimal place.
+    // try rounding maybe?
+    //
+    // Also, reading through line by line may be slow even though we are using a buffered reader.
+    // reading in chunks by n amount of bytes might be faster but ensuring we aren't ending at the middle of a line would be complicated.
+    // need to look at the implementation of BufReader to get a better understanding of what's going on under the hood.
+
+    while running {
+        let (tx, rx) = mpsc::channel();
+        for _x in 1..MAX_THREADS {
+            if !running {
+                break;
+            }
+            let sender = tx.clone();
+            let mut string_buffer = String::new();
+            let mut done_reading = false;
+            for _v in 1..NUMBER_OF_LINES {
+                let read_bytes = buf_reader.read_line(&mut string_buffer).unwrap();
+                if read_bytes == 0 {
+                    done_reading = true;
+                    break;
+                }
+            }
+            let child = thread::spawn(move || {
+                let parsed = parse_lines(string_buffer.to_string()).unwrap();
+                let _ = sender.send(parsed);
+            });
+            threads.push(child);
+            if done_reading {
+                running = false;
+                break;
+            }
+        }
+        let dataset = rx.recv().unwrap();
+        for data in dataset {
+            map.add_data_to_map(data);
+        }
+    }
+}
+
+// paying mind to how we are allocating data may be worth looking into.
+
+struct WeatherData {
+    _city: String,
+    sum: f64,
+    count: i64,
+    min: f64,
+    max: f64,
+}
+
+impl WeatherData {
+    pub fn add_data(&mut self, data: f64) {
+        self.sum = self.sum + data;
+        if data > self.max {
+            self.max = data;
+        }
+        if data < self.min {
+            self.min = data;
+        }
+        self.count = self.count + 1;
+    }
+    pub fn get_avg_temp(&self) -> f64 {
+        let avg = self.sum / self.count as f64;
+        avg
+    }
+}
+
+struct DataMap {
+    hash_map: HashMap<String, WeatherData>,
+}
+
+impl DataMap {
+    fn add_data_to_map(&mut self, data: (String, f64)) {
+        if self.hash_map.contains_key(&data.0) {
+            let weather_data_object = self
+                .hash_map
+                .get_mut(&data.0)
+                .expect("Error fetching object from map");
+            weather_data_object.add_data(data.1);
+        } else {
+            let new_weather_data_object = WeatherData {
+                _city: data.0.to_string(),
+                sum: data.1,
+                count: 1,
+                min: data.1,
+                max: data.1,
+            };
+            let city = data.0.to_string();
+            self.hash_map.insert(city, new_weather_data_object);
+        }
+    }
+
+    fn get_mut(&mut self) -> &mut HashMap<String, WeatherData> {
+        let map = &mut self.hash_map;
+        map
+    }
+}
