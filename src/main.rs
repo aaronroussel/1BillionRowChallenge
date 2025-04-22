@@ -5,7 +5,7 @@ use std::sync::mpsc;
 use std::thread;
 use std::time::Instant;
 
-// first run time : 978.85 seconds
+// first run time (basic iterative approach): 978.85 seconds
 // second run : 99.62 seconds -- CPU: Apple M3 Pro 11C
 
 fn main() {
